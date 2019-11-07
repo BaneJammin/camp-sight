@@ -1,40 +1,75 @@
-import requests, bs4, datetime
-from campsightconfig import base_url, loc
-from collections import OrderedDict
+#!python3.7
+#TODO:
+#   check input date is within next 16 days (api limitation)
+#   handle one-digit day and month input for API return checking
 
-def build_params():
-    prompts = ['month', 'day', 'year']
-    params = {}
-    for p in prompts:
-        params[p] = int(input(f'{p.capitalize()}? '))
-    stay = int(input('Nights to stay? '))
-    edate = datetime.date(params['year'], params['month'], params['day']) + datetime.timedelta(days=stay)
-    for p in prompts:
-        params[f'e{p}'] = getattr(edate, p)
-    params['find_pk'] = 1
-    return params
+import requests, bs4, datetime, json
+import configparser
 
-def make_websoup():
-    params = build_params()
-    res = requests.get(base_url, params=params)
-    soup = bs4.BeautifulSoup(res.text, features='html.parser')
-    return soup
+config = configparser.ConfigParser()
+config.read('campsight.ini')
 
-def make_filesoup(file):
-    with open(file) as f:
-        soup = bs4.BeautifulSoup(f.read(), features='html.parser')
-    return soup
+base_url = config['lakecounty']['url']
+postal_code = config['lakecounty']['postal_code']
+api_key = config['weatherbit.io']['key']
+api_url = config['weatherbit.io']['url']
 
-def find_available():
-    avail = []
-    for i in soup.find_all('table'):
-        rows = i.find_all('tr')
-        name = rows[0].td.text[:rows[0].td.text.find(':')]
-        status = rows[2].find_all('td')[1].text
-        if status == ' Reserve now':
-            avail.append(name)
-    return avail
+def date_to_dict(dateform, prefix=''):
+    return {f'{prefix}month': dateform.month,
+            f'{prefix}day': dateform.day,
+            f'{prefix}year': dateform.year}
 
-#soup = make_filesoup('parks.html')
-soup = make_websoup()
-print(find_available())
+def dict_to_date(dictform):
+    return datetime.date(dictform['year'],
+                         dictform['month'],
+                         dictform['day'])
+
+def yield_params() -> dict:
+    prompt = {'month': None, 'day': None, 'year': None, 'window': None}
+    for p in prompt:
+        prompt[p] = int(input(f'{p.capitalize()}? '))
+    for i in range(prompt['window']):
+        start_date = dict_to_date(prompt) + datetime.timedelta(days=i)
+        end_date = start_date + datetime.timedelta(days=1)
+        yield {**date_to_dict(start_date),
+               **date_to_dict(end_date, prefix='e'),
+               'find_pk': 1}
+
+def yield_websoup() -> tuple:
+    for params in yield_params():
+        res = requests.get(base_url, params=params)
+        soup = bs4.BeautifulSoup(res.text, features='html.parser')
+        yield params['month'], params['day'], params['year'] , soup
+
+def parse_soup() -> dict:
+    result = {}
+    for m, d, y, soup in yield_websoup():
+        available_sites = []
+        for i in soup.find_all('table'):
+            rows = i.find_all('tr')
+            name = rows[0].td.text[:rows[0].td.text.find(':')]
+            status = rows[2].find_all('td')[1].text
+            if status == ' Reserve now':
+                available_sites.append(name)
+        result[f'{y}-{m}-{d}'] = available_sites
+    for date in result:
+        if not result[date]:
+            result[date] = ['None available']
+    return result
+
+def pull_forecast() -> dict:
+    params = {'postal_code': postal_code, 'country': 'US', 'units': 'I', 'key': api_key}
+    res = requests.get(api_url, params=params)
+    weather = json.loads(res.text)
+    weather = {day['datetime']: day for day in weather['data']}
+    return weather
+ 
+def compare_dates():
+    parks = parse_soup()
+    weather = pull_forecast()
+    for date in parks:
+        if date in weather:
+            print(f"\n{date}\n",
+                f"Low: {weather[date]['app_min_temp']}\n",
+                    f"Chance of precip: {weather[date]['pop']}%\n",
+                        parks[date])
