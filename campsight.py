@@ -1,18 +1,17 @@
-#!python3.7
 #TODO:
 #   check input date is within next 16 days (api limitation)
 #   handle one-digit day and month input for API return checking
 
-import requests, bs4, datetime, json
-import configparser
+import bs4
+import config
+import datetime
+import json
+import requests
 
-config = configparser.ConfigParser()
-config.read('campsight.ini')
-
-base_url = config['lakecounty']['url']
-postal_code = config['lakecounty']['postal_code']
-api_key = config['weatherbit.io']['key']
-api_url = config['weatherbit.io']['url']
+base_url = config.base_url
+postal_code = config.postal_code
+api_key = config.weatherbit_key
+api_url = config.weatherbit_api
 
 def date_to_dict(dateform, prefix=''):
     return {f'{prefix}month': dateform.month,
