@@ -16,10 +16,15 @@ def dict_to_date(dictform):
     return datetime.date(dictform["year"], dictform["month"], dictform["day"])
 
 
-def yield_params() -> dict:
+def prompt() -> dict:
     prompt = {"month": None, "day": None, "year": None, "window": None}
     for p in prompt:
-        prompt[p] = int(input(f"{p.capitalize()}? "))
+        prompt[p] = int(input(f"{p.capitalize()}?"))
+    return prompt
+
+
+def yield_params() -> dict:
+    prompt = prompt()
     for i in range(prompt["window"]):
         start_date = dict_to_date(prompt) + datetime.timedelta(days=i)
         end_date = start_date + datetime.timedelta(days=1)
