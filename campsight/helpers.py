@@ -11,13 +11,14 @@ def get_dates():
     return start_date, end_date
 
 
-def build_params(start_date, end_date):
-    return {
-        "month": start_date.month,
-        "day": start_date.day,
-        "year": start_date.year,
-        "emonth": end_date.month,
-        "eday": end_date.day,
-        "eyear": end_date.year,
-        "find_pk": 1,
-    }
+# def cross_reference():
+#     parks = parse_soup()
+#     weather = pull_forecast()
+#     for date in parks:
+#         if date in weather:
+#             print(
+#                 f"\n{date}\n",
+#                 f"Low: {weather[date]['app_min_temp']}\n",
+#                 f"Chance of precip: {weather[date]['pop']}%\n",
+#                 parks[date],
+#             )
