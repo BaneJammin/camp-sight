@@ -1,5 +1,3 @@
-import datetime
-
 import bs4
 import requests
 
@@ -18,15 +16,23 @@ def build_params(start_date, end_date):
     }
 
 
-def find_available_sites(params):
+def fetch_availability(params):
+    # TODO: see test_camp.py
     res = requests.get(base_url, params=params)
-    soup = bs4.BeautifulSoup(res.text, features="html.parser")
+    return res
 
-    # available_sites = []
-    # for i in soup.find_all("table"):
-    #     rows = i.find_all("tr")
-    #     name = rows[0].td.text[: rows[0].td.text.find(":")]
-    #     status = rows[2].find_all("td")[1].text
-    #     if status == " Reserve now":
-    #         available_sites.append(name)
-    # return available_sites
+
+def parse_response(response, features="html.parser"):
+    if isinstance(response, requests.Response):
+        soup = bs4.BeautifulSoup(response.text, features=features)
+    elif isinstance(response, str):
+        soup = bs4.BeautifulSoup(response, features=features)
+    available_sites = []
+    for i in soup.find_all("table"):
+        rows = i.find_all("tr")
+        name = rows[0].td.text[: rows[0].td.text.find(":")]
+        status = rows[2].find_all("td")[1].text
+        if status == " Reserve now":
+            available_sites.append(name)
+    return available_sites
+
