@@ -1,15 +1,26 @@
-from requests_html import HTML, HTMLSession
 import datetime as dt
+import os
+
+from requests_html import HTML, HTMLSession
 
 
 def build_dates() -> list:
+    num_days = 7
     now = dt.datetime.now()
-    # Next-day reservations must be made before 3pm
-    start = dt.date(now.year, now.month, now.day + 1 if now.hour >= 15 else 0)
-    return [start + dt.timedelta(days=i) for i in range(7)]
+    adjust = 1 if now.hour >= 15 else 0  # Next-day reservations must be made before 3pm
+    start = now + dt.timedelta(days=adjust)
+    return [start + dt.timedelta(days=i + 1) for i in range(num_days)]
 
 
-def parse(html) -> list:
+def fetch_campsite_response(query_date):
+    session = HTMLSession()
+    url = "https://web1.vermontsystems.com/wbwsc/ohlakemetrowt.wsc/search.html"
+    params = {"begindate": query_date.strftime("%m/%d/%Y"), "Module": "RN", "display": "Listing"}
+    res = session.get(url, params=params)
+    return res
+
+
+def parse_campsite_response(html) -> list:
     available = []
     table = html.find("tbody", first=True)
     rows = table.find("tr")
@@ -19,15 +30,12 @@ def parse(html) -> list:
     return available
 
 
-def main():
-    url = "https://web1.vermontsystems.com/wbwsc/ohlakemetrowt.wsc/search.html"
-    params = {"begindate": None, "Module": "RN", "display": "Listing"}
-    session = HTMLSession()
-    available = {}
-    dates = build_dates()
-    for d in dates:
-        params["begindate"] = d.strftime("%m/%d/%Y")
-        res = session.get(url, params=params)
-        if res.status_code == 200:
-            available[d] = parse(res.html)
-    return available
+# def get_weather_json():
+#     session = HTMLSession()
+#     key = os.environ.get("WEATHERBIT_TOKEN")
+#     if not key:
+#         raise ValueError("Environment variable 'WEATHERBIT_TOKEN' not found")
+#     url = "https://api.weatherbit.io/v2.0/forecast/daily"
+#     params = {"key": key, "postal_code": "44077"}
+#     res = session.get(url, params=params)
+#     return res.json()
