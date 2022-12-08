@@ -4,7 +4,7 @@ attrs==19.3.0
 beautifulsoup4==4.8.1
 black==19.10b0
 -e git+https://github.com/bghull/camp-sight.git@c60607b59675bdee6d2583b7bf57e9a8185234d8#egg=campsight
-certifi==2019.11.28
+certifi==2022.12.7
 chardet==3.0.4
 Click==7.0
 colorama==0.4.3
